@@ -19,9 +19,10 @@ const SHORT_NAMES: Record<string, string> = {
 };
 
 function getSnapTarget(currentRotation: number, idx: number): number {
-  // Base rotation needed so that item idx lands at SELECTOR_ANGLE
-  const baseTarget = SELECTOR_ANGLE + 90 - (360 / N) * idx;
-  // Pick the multiple of 360 closest to currentRotation
+  // We want (angleDeg[idx] + target) = SELECTOR_ANGLE
+  // With angleDeg = SELECTOR_ANGLE + (360/N)*idx, 
+  // target = -(360/N)*idx
+  const baseTarget = -(360 / N) * idx;
   const delta = ((baseTarget - currentRotation) % 360 + 540) % 360 - 180;
   return currentRotation + delta;
 }
@@ -52,7 +53,11 @@ export function PearlNav() {
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
-    if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+      window.scrollTo({ top: absoluteTop - 80, behavior: "smooth" });
+    }
   };
 
   const getAngle = (e: MouseEvent | React.MouseEvent): number => {
@@ -84,7 +89,10 @@ export function PearlNav() {
     setIsSnapping(true);
     suppressScrollRef.current = true;
     scrollTo(paradigms[nearest].id);
-    setTimeout(() => { setIsSnapping(false); suppressScrollRef.current = false; }, 1200);
+    setTimeout(() => { 
+      setIsSnapping(false); 
+      suppressScrollRef.current = false; 
+    }, 2000);
   };
 
   useEffect(() => {
@@ -114,25 +122,45 @@ export function PearlNav() {
     };
   }, []);
 
-  // ── Scroll tracking: auto-rotate disc to match visible section ──
+  // ── Section Observation: auto-rotate disc based on visibility ──
   useEffect(() => {
-    const onScroll = () => {
+    const options = {
+      root: null,
+      // Target the center-upper part of the screen where reading focus usually is
+      rootMargin: "-30% 0px -40% 0px",
+      threshold: 0,
+    };
+
+    const callback: IntersectionObserverCallback = (entries) => {
+      // Don't sync the disc if we are currently dragging it or if we just clicked an item
       if (dragRef.current || suppressScrollRef.current) return;
-      const viewMid = window.scrollY + window.innerHeight * 0.5;
-      let closestIdx = activeIdxRef.current;
-      let closestDist = Infinity;
-      paradigms.forEach((p, idx) => {
-        const el = document.getElementById(p.id);
-        if (!el) return;
-        const dist = Math.abs(viewMid - (el.offsetTop + el.offsetHeight / 2));
-        if (dist < closestDist) { closestDist = dist; closestIdx = idx; }
-      });
-      if (closestIdx !== activeIdxRef.current) {
-        rotateTo(closestIdx);
+
+      // Find the best intersecting entry (the one that is most visible in our target zone)
+      let bestEntry = null;
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry;
+          }
+        }
+      }
+
+      if (bestEntry) {
+        const id = (bestEntry.target as HTMLElement).id;
+        const idx = paradigms.findIndex((p) => p.id === id);
+        if (idx !== -1 && idx !== activeIdxRef.current) {
+          rotateTo(idx);
+        }
       }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    const observer = new IntersectionObserver(callback, options);
+    paradigms.forEach((p) => {
+      const el = document.getElementById(p.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -282,7 +310,7 @@ export function PearlNav() {
 
           {/* Paradigm items */}
           {paradigms.map((p, idx) => {
-            const angleDeg = (360 / N) * idx - 90;
+            const angleDeg = SELECTOR_ANGLE + (360 / N) * idx;
             const isActive = idx === activeIdx;
 
             return (
@@ -298,7 +326,7 @@ export function PearlNav() {
                       rotateTo(idx);
                       suppressScrollRef.current = true;
                       scrollTo(p.id);
-                      setTimeout(() => { suppressScrollRef.current = false; }, 1200);
+                      setTimeout(() => { suppressScrollRef.current = false; }, 2000);
                     }
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
@@ -306,31 +334,43 @@ export function PearlNav() {
                   style={{
                     position: "absolute",
                     left: ARM_RADIUS - 10, top: -10,
-                    display: "flex", alignItems: "center", gap: 6,
+                    display: "flex", alignItems: "center",
                     background: "transparent", border: "none",
-                    cursor: "pointer", outline: "none", padding: "3px",
+                    cursor: "pointer", outline: "none", padding: "0",
                   }}
                 >
                   <div style={{
-                    width: isActive ? 22 : 16, height: isActive ? 22 : 16,
-                    borderRadius: "50%", flexShrink: 0,
-                    background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, ${p.color} 42%, rgba(0,0,0,0.8) 100%)`,
-                    boxShadow: `0 0 ${isActive ? 22 : 8}px ${p.color}cc, inset -1px -1px 3px rgba(0,0,0,0.4), inset 1px 1px 3px rgba(255,255,255,0.6)`,
-                    border: `1px solid rgba(255,255,255,${isActive ? 0.5 : 0.3})`,
-                    transition: "all 0.3s ease",
-                  }} />
-                  <span style={{
-                    color: isActive ? p.color : "rgba(255,255,255,0.55)",
-                    fontSize: 9, fontWeight: 700,
-                    fontFamily: "Outfit, sans-serif",
-                    whiteSpace: "nowrap", letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    textShadow: isActive ? `0 0 10px ${p.color}` : "none",
-                    transition: "color 0.2s ease",
-                    userSelect: "none",
+                    display: "flex", 
+                    flexDirection: "row-reverse", // Label always on the LEFT of the dot
+                    alignItems: "center", gap: 8,
+                    transform: `rotate(${-(outerRotation + angleDeg)}deg)`,
+                    transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                   }}>
-                    {SHORT_NAMES[p.id] ?? p.name}
-                  </span>
+                    {/* The Dot */}
+                    <div style={{
+                      width: isActive ? 22 : 16, height: isActive ? 22 : 16,
+                      borderRadius: "50%", flexShrink: 0,
+                      background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, ${p.color} 42%, rgba(0,0,0,0.8) 100%)`,
+                      boxShadow: `0 0 ${isActive ? 22 : 8}px ${p.color}cc, inset -1px -1px 3px rgba(0,0,0,0.4), inset 1px 1px 3px rgba(255,255,255,0.6)`,
+                      border: `1px solid rgba(255,255,255,${isActive ? 0.5 : 0.3})`,
+                      transition: "all 0.3s ease",
+                    }} />
+                    
+                    {/* The Label */}
+                    <span style={{
+                      color: isActive ? p.color : "rgba(255,255,255,0.55)",
+                      fontSize: 10, fontWeight: 700,
+                      fontFamily: "Outfit, sans-serif",
+                      whiteSpace: "nowrap", letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      textShadow: isActive ? `0 0 10px ${p.color}` : "none",
+                      transition: "color 0.2s ease",
+                      userSelect: "none",
+                      textAlign: "right", // Align towards the dot
+                    }}>
+                      {SHORT_NAMES[p.id] ?? p.name}
+                    </span>
+                  </div>
                 </button>
               </div>
             );
