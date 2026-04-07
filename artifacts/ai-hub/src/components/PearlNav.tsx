@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { paradigms } from "../data/paradigms";
 
-const DISC_SIZE = 320;
-const ARM_RADIUS = 128;
+const DISC_SIZE = 440;
+const ARM_RADIUS = 174;
 const N = paradigms.length;
 
 const SHORT_NAMES: Record<string, string> = {
@@ -93,7 +93,7 @@ export function PearlNav() {
       data-testid="pearl-disc-nav"
       style={{
         position: "fixed",
-        left: -(DISC_SIZE / 2),
+        right: -(DISC_SIZE / 2),
         top: `calc(50vh - ${DISC_SIZE / 2}px)`,
         width: DISC_SIZE,
         height: DISC_SIZE,
@@ -287,15 +287,15 @@ export function PearlNav() {
         })}
       </div>
 
-      {/* Right-edge glow — hints that the disc extends further left */}
+      {/* Left-edge glow — hints that the disc extends further right */}
       <div style={{
         position: "absolute",
         top: 0,
-        right: 0,
+        left: 0,
         width: DISC_SIZE / 2,
         height: "100%",
-        borderRadius: `0 ${DISC_SIZE / 2}px ${DISC_SIZE / 2}px 0`,
-        boxShadow: "4px 0 30px rgba(80,130,255,0.08)",
+        borderRadius: `${DISC_SIZE / 2}px 0 0 ${DISC_SIZE / 2}px`,
+        boxShadow: "-4px 0 30px rgba(80,130,255,0.08)",
         pointerEvents: "none",
       }} />
     </div>
