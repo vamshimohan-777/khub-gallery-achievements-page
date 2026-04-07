@@ -10,7 +10,7 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
       id={paradigm.id}
       className="relative py-24"
       style={{
-        background: `radial-gradient(ellipse at 50% 0%, ${paradigm.color}12 0%, transparent 60%)`
+        background: `radial-gradient(ellipse at 50% 0%, ${paradigm.color}08 0%, transparent 60%)`
       }}
     >
       {/* ── Hero banner ── */}
@@ -19,7 +19,7 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.9, ease: "easeOut" }}
-        className="relative mx-6 lg:mx-16 rounded-3xl overflow-hidden mb-14"
+        className="relative mx-6 lg:mx-16 rounded-3xl overflow-hidden mb-14 shadow-2xl shadow-primary/5"
         style={{ height: 380 }}
       >
         <img
@@ -28,11 +28,19 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
           className="absolute inset-0 w-full h-full object-cover"
           loading="lazy"
         />
-        {/* Dark gradient over image */}
+        {/* Theme-aware gradient over image */}
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(120deg, rgba(5,7,20,0.88) 0%, rgba(5,7,20,0.55) 50%, ${paradigm.color}22 100%)`
+            background: `linear-gradient(120deg, var(--foreground) 0%, var(--foreground)/0.6 50%, ${paradigm.color}33 100%)`,
+            mixBlendMode: 'multiply',
+            opacity: 0.85
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(120deg, rgba(0,0,0,0.4) 0%, transparent 100%)`
           }}
         />
         {/* Accent bar */}
@@ -43,8 +51,8 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
         {/* Text overlay */}
         <div className="absolute inset-0 flex flex-col justify-end p-10">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4 self-start"
-            style={{ borderColor: `${paradigm.color}60`, background: `${paradigm.color}18` }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4 self-start backdrop-blur-md"
+            style={{ borderColor: `${paradigm.color}60`, background: `${paradigm.color}22` }}
           >
             <Icon className="w-4 h-4" style={{ color: paradigm.color }} />
             <span className="text-xs font-bold tracking-widest uppercase" style={{ color: paradigm.color }}>
@@ -54,7 +62,7 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
           <h2 className="text-4xl md:text-5xl font-black text-white leading-tight mb-3">
             {paradigm.tagline}
           </h2>
-          <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+          <p className="text-white/80 max-w-2xl text-base leading-relaxed">
             {paradigm.description}
           </p>
         </div>
@@ -93,10 +101,10 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
                   {/* Dot */}
                   <div className="flex-shrink-0 mt-1 relative z-10">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg"
                       style={{
-                        background: `${paradigm.color}22`,
-                        border: `1.5px solid ${paradigm.color}80`,
+                        background: `var(--background)`,
+                        border: `2px solid ${paradigm.color}`,
                         color: paradigm.color,
                       }}
                     >
@@ -105,10 +113,10 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
                   </div>
                   {/* Content */}
                   <div
-                    className="flex-1 rounded-2xl p-4 border"
+                    className="flex-1 rounded-2xl p-4 border shadow-sm backdrop-blur-sm"
                     style={{
-                      background: "rgba(255,255,255,0.03)",
-                      borderColor: "rgba(255,255,255,0.07)",
+                      background: "var(--card)/0.5",
+                      borderColor: "var(--border)",
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -116,8 +124,8 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
                         {a.year}
                       </span>
                     </div>
-                    <h4 className="text-white font-bold text-sm mb-1">{a.title}</h4>
-                    <p className="text-white/50 text-xs leading-relaxed">{a.desc}</p>
+                    <h4 className="text-foreground font-bold text-sm mb-1">{a.title}</h4>
+                    <p className="text-muted-foreground text-xs leading-relaxed">{a.desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -147,13 +155,13 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="rounded-xl overflow-hidden"
+                className="rounded-xl overflow-hidden shadow-md"
                 style={{ height: 160 }}
               >
                 <img
                   src={photo.src}
                   alt={photo.alt}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
                   loading="lazy"
                 />
               </motion.div>
@@ -164,13 +172,13 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-xl overflow-hidden row-span-2"
+              className="rounded-xl overflow-hidden row-span-2 shadow-md"
               style={{ height: 328 }}
             >
               <img
                 src={gallery[2]?.src}
                 alt={gallery[2]?.alt}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
                 loading="lazy"
               />
             </motion.div>
@@ -182,13 +190,13 @@ export function ParadigmSection({ paradigm, index }: { paradigm: Paradigm; index
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.5, delay: 0.28 + i * 0.08 }}
-                  className="rounded-xl overflow-hidden flex-1"
+                  className="rounded-xl overflow-hidden flex-1 shadow-md"
                   style={{ height: 155 }}
                 >
                   <img
                     src={photo.src}
                     alt={photo.alt}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
                     loading="lazy"
                   />
                 </motion.div>
