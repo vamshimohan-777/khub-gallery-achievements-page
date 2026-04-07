@@ -264,7 +264,13 @@ export function PearlNav() {
               }}>
                 <button
                   onClick={() => {
-                    if (!isDragging) { setActiveIdx(idx); scrollTo(p.id); }
+                    if (!isDragging) {
+                      const target = getSnapTarget(outerRotRef.current, idx);
+                      outerRotRef.current = target;
+                      setOuterRotation(target);
+                      setActiveIdx(idx);
+                      scrollTo(p.id);
+                    }
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   data-testid={`pearl-nav-${p.id}`}
