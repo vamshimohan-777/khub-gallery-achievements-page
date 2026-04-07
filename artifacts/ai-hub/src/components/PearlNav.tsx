@@ -4,6 +4,8 @@ import { paradigms } from "../data/paradigms";
 const DISC_SIZE = 440;
 const ARM_RADIUS = 174;
 const N = paradigms.length;
+// 9 o'clock (leftmost point) = the selector position in CSS rotate terms
+const SELECTOR_ANGLE = 180;
 
 const SHORT_NAMES: Record<string, string> = {
   "computer-vision": "Vision",
@@ -16,36 +18,40 @@ const SHORT_NAMES: Record<string, string> = {
   "time-series": "Time Series",
 };
 
+function getSnapTarget(currentRotation: number, idx: number): number {
+  // Base rotation needed so that item idx lands at SELECTOR_ANGLE
+  const baseTarget = SELECTOR_ANGLE + 90 - (360 / N) * idx;
+  // Pick the multiple of 360 closest to currentRotation
+  const delta = ((baseTarget - currentRotation) % 360 + 540) % 360 - 180;
+  return currentRotation + delta;
+}
+
+function getNearestIdx(currentRotation: number): number {
+  let nearestIdx = 0;
+  let smallestDelta = Infinity;
+  for (let i = 0; i < N; i++) {
+    const snapTarget = getSnapTarget(currentRotation, i);
+    const d = Math.abs(snapTarget - currentRotation);
+    if (d < smallestDelta) { smallestDelta = d; nearestIdx = i; }
+  }
+  return nearestIdx;
+}
+
 export function PearlNav() {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [outerRotation, setOuterRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
   const outerRotRef = useRef(0);
-
-  // Track active section on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = paradigms.map((p) => document.getElementById(p.id));
-      const mid = window.scrollY + window.innerHeight / 2;
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const s = sections[i];
-        if (s && s.offsetTop <= mid) { setActiveSection(s.id); return; }
-      }
-      setActiveSection(null);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
   };
 
-  // Helper: get angle (degrees) from mouse event relative to disc center
-  const getAngle = (e: MouseEvent | React.MouseEvent) => {
+  const getAngle = (e: MouseEvent | React.MouseEvent): number => {
     if (!containerRef.current) return 0;
     const rect = containerRef.current.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
@@ -55,29 +61,40 @@ export function PearlNav() {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
-    const startAngle = getAngle(e);
-    dragRef.current = { startAngle, startRotation: outerRotRef.current };
+    dragRef.current = { startAngle: getAngle(e), startRotation: outerRotRef.current };
     setIsDragging(true);
+    setIsSnapping(false);
   };
 
-  // Drag move + up on window
+  const snapAndNavigate = () => {
+    const nearest = getNearestIdx(outerRotRef.current);
+    const snapRot = getSnapTarget(outerRotRef.current, nearest);
+    outerRotRef.current = snapRot;
+    setOuterRotation(snapRot);
+    setActiveIdx(nearest);
+    setIsSnapping(true);
+    scrollTo(paradigms[nearest].id);
+    setTimeout(() => setIsSnapping(false), 600);
+  };
+
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragRef.current || !containerRef.current) return;
-      const currentAngle = (() => {
-        const rect = containerRef.current!.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        return Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
-      })();
-      const delta = currentAngle - dragRef.current.startAngle;
+      const rect = containerRef.current.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const angle = Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+      const delta = angle - dragRef.current.startAngle;
       const next = dragRef.current.startRotation + delta;
       outerRotRef.current = next;
       setOuterRotation(next);
     };
     const onUp = () => {
-      dragRef.current = null;
-      setIsDragging(false);
+      if (dragRef.current) {
+        dragRef.current = null;
+        setIsDragging(false);
+        snapAndNavigate();
+      }
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -87,217 +104,204 @@ export function PearlNav() {
     };
   }, []);
 
+  const activeName = SHORT_NAMES[paradigms[activeIdx]?.id] ?? paradigms[activeIdx]?.name ?? "";
+  const activeColor = paradigms[activeIdx]?.color ?? "#fff";
+
   return (
-    <div
-      ref={containerRef}
-      data-testid="pearl-disc-nav"
-      style={{
-        position: "fixed",
-        right: -(DISC_SIZE / 2),
-        top: `calc(50vh - ${DISC_SIZE / 2}px)`,
-        width: DISC_SIZE,
-        height: DISC_SIZE,
-        zIndex: 50,
-      }}
-    >
-      {/* ── INNER DISC: auto-rotating decorative layer ── */}
+    <>
+      {/* ── Background blur overlay while dragging ── */}
       <div
-        className="pearl-disc-rotate"
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: 0,
-          borderRadius: "50%",
+          backdropFilter: isDragging ? "blur(10px)" : "blur(0px)",
+          background: isDragging ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0)",
+          zIndex: 40,
           pointerEvents: "none",
+          transition: "backdrop-filter 0.25s ease, background 0.25s ease",
+        }}
+      />
+
+      {/* ── Disc container ── */}
+      <div
+        ref={containerRef}
+        data-testid="pearl-disc-nav"
+        style={{
+          position: "fixed",
+          right: -(DISC_SIZE / 2),
+          top: `calc(50vh - ${DISC_SIZE / 2}px)`,
+          width: DISC_SIZE,
+          height: DISC_SIZE,
+          zIndex: 50,
         }}
       >
-        {/* Disc face */}
+        {/* ── Selector notch at the left (9 o'clock) — the "pick" position ── */}
         <div style={{
           position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 40% 35%, rgba(60,90,200,0.2) 0%, rgba(8,11,32,0.95) 50%, rgba(3,5,18,0.99) 100%)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          backdropFilter: "blur(16px)",
-          boxShadow: "0 0 80px rgba(0,100,255,0.12), inset 0 0 60px rgba(0,0,0,0.6)",
-        }} />
-
-        {/* Concentric decorative rings */}
-        {[0.80, 0.62, 0.44, 0.26].map((s, i) => (
-          <div key={i} style={{
-            position: "absolute",
-            borderRadius: "50%",
-            border: `1px solid rgba(255,255,255,${i === 0 ? 0.08 : 0.04})`,
-            top: `${((1 - s) / 2) * 100}%`,
-            left: `${((1 - s) / 2) * 100}%`,
-            width: `${s * 100}%`,
-            height: `${s * 100}%`,
-          }} />
-        ))}
-
-        {/* Radial spokes */}
-        {[0, 45, 90, 135].map((angle) => (
-          <div key={angle} style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: "60%",
-            height: "1px",
-            background: "rgba(255,255,255,0.03)",
-            transformOrigin: "0 0",
-            transform: `rotate(${angle}deg) translateY(-0.5px)`,
-          }} />
-        ))}
-
-        {/* Center hub */}
-        <div style={{
-          position: "absolute",
+          left: -2,
           top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 38% 32%, rgba(100,150,255,0.35), rgba(15,22,70,0.95))",
-          border: "1px solid rgba(255,255,255,0.14)",
-          boxShadow: "0 0 20px rgba(80,130,255,0.3)",
+          transform: "translateY(-50%)",
+          zIndex: 20,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <span style={{
-            color: "rgba(200,220,255,0.95)",
-            fontSize: 7,
-            fontWeight: 900,
-            letterSpacing: "0.14em",
-            fontFamily: "Outfit, sans-serif",
-          }}>NEXUS</span>
-        </div>
-      </div>
-
-      {/* ── OUTER RING: manually draggable pearl necklace ── */}
-      <div
-        onMouseDown={handleMouseDown}
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          transform: `rotate(${outerRotation}deg)`,
-          cursor: isDragging ? "grabbing" : "grab",
-          zIndex: 2,
-        }}
-      >
-        {/* Faint orbit track */}
-        <div style={{
-          position: "absolute",
-          borderRadius: "50%",
-          border: "1px solid rgba(255,255,255,0.07)",
-          top: `${((DISC_SIZE / 2 - ARM_RADIUS - 18) / DISC_SIZE) * 100}%`,
-          left: `${((DISC_SIZE / 2 - ARM_RADIUS - 18) / DISC_SIZE) * 100}%`,
-          width: `${((ARM_RADIUS + 18) * 2 / DISC_SIZE) * 100}%`,
-          height: `${((ARM_RADIUS + 18) * 2 / DISC_SIZE) * 100}%`,
+          gap: 8,
           pointerEvents: "none",
-        }} />
+        }}>
+          {/* Arrow pointing right into the disc */}
+          <div style={{
+            width: 10,
+            height: 10,
+            borderTop: "2px solid rgba(255,255,255,0.7)",
+            borderRight: "2px solid rgba(255,255,255,0.7)",
+            transform: "rotate(45deg)",
+            boxShadow: "0 0 8px rgba(255,255,255,0.4)",
+          }} />
+          {/* Active label floating outside the disc */}
+          <div style={{
+            position: "absolute",
+            right: "calc(100% + 14px)",
+            top: "50%",
+            transform: "translateY(-50%)",
+            whiteSpace: "nowrap",
+            textAlign: "right",
+          }}>
+            <div style={{
+              color: activeColor,
+              fontSize: 11,
+              fontWeight: 800,
+              fontFamily: "Outfit, sans-serif",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              textShadow: `0 0 14px ${activeColor}`,
+              transition: "color 0.4s ease, text-shadow 0.4s ease",
+            }}>{activeName}</div>
+            <div style={{
+              color: "rgba(255,255,255,0.35)",
+              fontSize: 8,
+              fontFamily: "Inter, sans-serif",
+              letterSpacing: "0.06em",
+              marginTop: 2,
+            }}>selected</div>
+          </div>
+        </div>
 
-        {/* Connecting string (full circle) */}
-        <svg
-          style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-          width={DISC_SIZE}
-          height={DISC_SIZE}
+        {/* ── INNER DISC: auto-rotating decorative layer ── */}
+        <div
+          className="pearl-disc-rotate"
+          style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none" }}
         >
-          <circle
-            cx={DISC_SIZE / 2}
-            cy={DISC_SIZE / 2}
-            r={ARM_RADIUS}
-            fill="none"
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="1"
-            strokeDasharray="3 5"
-          />
-        </svg>
+          <div style={{
+            position: "absolute", inset: 0, borderRadius: "50%",
+            background: "radial-gradient(circle at 40% 35%, rgba(60,90,200,0.2) 0%, rgba(8,11,32,0.95) 50%, rgba(3,5,18,0.99) 100%)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            backdropFilter: "blur(16px)",
+            boxShadow: "0 0 80px rgba(0,100,255,0.12), inset 0 0 60px rgba(0,0,0,0.6)",
+          }} />
+          {[0.80, 0.62, 0.44, 0.26].map((s, i) => (
+            <div key={i} style={{
+              position: "absolute", borderRadius: "50%",
+              border: `1px solid rgba(255,255,255,${i === 0 ? 0.08 : 0.04})`,
+              top: `${((1 - s) / 2) * 100}%`, left: `${((1 - s) / 2) * 100}%`,
+              width: `${s * 100}%`, height: `${s * 100}%`,
+            }} />
+          ))}
+          {[0, 45, 90, 135].map((angle) => (
+            <div key={angle} style={{
+              position: "absolute", top: "50%", left: "50%",
+              width: "60%", height: "1px",
+              background: "rgba(255,255,255,0.03)",
+              transformOrigin: "0 0",
+              transform: `rotate(${angle}deg) translateY(-0.5px)`,
+            }} />
+          ))}
+          {/* Center hub */}
+          <div style={{
+            position: "absolute", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 52, height: 52, borderRadius: "50%",
+            background: "radial-gradient(circle at 38% 32%, rgba(100,150,255,0.35), rgba(15,22,70,0.95))",
+            border: "1px solid rgba(255,255,255,0.14)",
+            boxShadow: "0 0 20px rgba(80,130,255,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{
+              color: "rgba(200,220,255,0.95)", fontSize: 7, fontWeight: 900,
+              letterSpacing: "0.14em", fontFamily: "Outfit, sans-serif",
+            }}>NEXUS</span>
+          </div>
+        </div>
 
-        {/* Paradigm items on the outer ring */}
-        {paradigms.map((p, idx) => {
-          const angleDeg = (360 / N) * idx - 90;
-          const isActive = activeSection === p.id;
+        {/* ── OUTER RING: manually draggable ── */}
+        <div
+          onMouseDown={handleMouseDown}
+          style={{
+            position: "absolute", inset: 0, borderRadius: "50%",
+            transform: `rotate(${outerRotation}deg)`,
+            transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            cursor: isDragging ? "grabbing" : "grab",
+            zIndex: 2,
+          }}
+        >
+          {/* Orbit track */}
+          <svg style={{ position: "absolute", inset: 0, pointerEvents: "none" }} width={DISC_SIZE} height={DISC_SIZE}>
+            <circle
+              cx={DISC_SIZE / 2} cy={DISC_SIZE / 2} r={ARM_RADIUS}
+              fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="1" strokeDasharray="3 6"
+            />
+          </svg>
 
-          return (
-            <div
-              key={p.id}
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                width: 0,
-                height: 0,
+          {/* Paradigm items */}
+          {paradigms.map((p, idx) => {
+            const angleDeg = (360 / N) * idx - 90;
+            const isActive = idx === activeIdx;
+
+            return (
+              <div key={p.id} style={{
+                position: "absolute", left: "50%", top: "50%",
+                width: 0, height: 0,
                 transform: `rotate(${angleDeg}deg)`,
                 transformOrigin: "0 0",
-              }}
-            >
-              <button
-                onClick={(e) => {
-                  // Only fire click if we didn't drag significantly
-                  if (!isDragging) { e.stopPropagation(); scrollTo(p.id); }
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                data-testid={`pearl-nav-${p.id}`}
-                style={{
-                  position: "absolute",
-                  left: ARM_RADIUS - 10,
-                  top: -10,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  outline: "none",
-                  padding: "3px",
-                }}
-              >
-                {/* Pearl orb */}
-                <div style={{
-                  width: isActive ? 20 : 15,
-                  height: isActive ? 20 : 15,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, ${p.color} 42%, rgba(0,0,0,0.8) 100%)`,
-                  boxShadow: `0 0 ${isActive ? 18 : 8}px ${p.color}cc, inset -1px -1px 3px rgba(0,0,0,0.4), inset 1px 1px 3px rgba(255,255,255,0.6)`,
-                  border: "1px solid rgba(255,255,255,0.35)",
-                  transition: "all 0.25s ease",
-                }} />
-
-                {/* Label — rotates with outer ring */}
-                <span style={{
-                  color: isActive ? p.color : "rgba(255,255,255,0.6)",
-                  fontSize: 8.5,
-                  fontWeight: 700,
-                  fontFamily: "Outfit, sans-serif",
-                  whiteSpace: "nowrap",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  textShadow: isActive ? `0 0 10px ${p.color}` : "none",
-                  transition: "color 0.2s ease",
-                  userSelect: "none",
-                }}>
-                  {SHORT_NAMES[p.id] ?? p.name}
-                </span>
-              </button>
-            </div>
-          );
-        })}
+              }}>
+                <button
+                  onClick={() => {
+                    if (!isDragging) { setActiveIdx(idx); scrollTo(p.id); }
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  data-testid={`pearl-nav-${p.id}`}
+                  style={{
+                    position: "absolute",
+                    left: ARM_RADIUS - 10, top: -10,
+                    display: "flex", alignItems: "center", gap: 6,
+                    background: "transparent", border: "none",
+                    cursor: "pointer", outline: "none", padding: "3px",
+                  }}
+                >
+                  <div style={{
+                    width: isActive ? 22 : 16, height: isActive ? 22 : 16,
+                    borderRadius: "50%", flexShrink: 0,
+                    background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, ${p.color} 42%, rgba(0,0,0,0.8) 100%)`,
+                    boxShadow: `0 0 ${isActive ? 22 : 8}px ${p.color}cc, inset -1px -1px 3px rgba(0,0,0,0.4), inset 1px 1px 3px rgba(255,255,255,0.6)`,
+                    border: `1px solid rgba(255,255,255,${isActive ? 0.5 : 0.3})`,
+                    transition: "all 0.3s ease",
+                  }} />
+                  <span style={{
+                    color: isActive ? p.color : "rgba(255,255,255,0.55)",
+                    fontSize: 9, fontWeight: 700,
+                    fontFamily: "Outfit, sans-serif",
+                    whiteSpace: "nowrap", letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    textShadow: isActive ? `0 0 10px ${p.color}` : "none",
+                    transition: "color 0.2s ease",
+                    userSelect: "none",
+                  }}>
+                    {SHORT_NAMES[p.id] ?? p.name}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
-
-      {/* Left-edge glow — hints that the disc extends further right */}
-      <div style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: DISC_SIZE / 2,
-        height: "100%",
-        borderRadius: `${DISC_SIZE / 2}px 0 0 ${DISC_SIZE / 2}px`,
-        boxShadow: "-4px 0 30px rgba(80,130,255,0.08)",
-        pointerEvents: "none",
-      }} />
-    </div>
+    </>
   );
 }
