@@ -104,9 +104,6 @@ export function PearlNav() {
     };
   }, []);
 
-  const activeName = SHORT_NAMES[paradigms[activeIdx]?.id] ?? paradigms[activeIdx]?.name ?? "";
-  const activeColor = paradigms[activeIdx]?.color ?? "#fff";
-
   return (
     <>
       {/* ── Background blur overlay while dragging ── */}
@@ -135,55 +132,6 @@ export function PearlNav() {
           zIndex: 50,
         }}
       >
-        {/* ── Selector notch at the left (9 o'clock) — the "pick" position ── */}
-        <div style={{
-          position: "absolute",
-          left: -2,
-          top: "50%",
-          transform: "translateY(-50%)",
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          pointerEvents: "none",
-        }}>
-          {/* Arrow pointing right into the disc */}
-          <div style={{
-            width: 10,
-            height: 10,
-            borderTop: "2px solid rgba(255,255,255,0.7)",
-            borderRight: "2px solid rgba(255,255,255,0.7)",
-            transform: "rotate(45deg)",
-            boxShadow: "0 0 8px rgba(255,255,255,0.4)",
-          }} />
-          {/* Active label floating outside the disc */}
-          <div style={{
-            position: "absolute",
-            right: "calc(100% + 14px)",
-            top: "50%",
-            transform: "translateY(-50%)",
-            whiteSpace: "nowrap",
-            textAlign: "right",
-          }}>
-            <div style={{
-              color: activeColor,
-              fontSize: 11,
-              fontWeight: 800,
-              fontFamily: "Outfit, sans-serif",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              textShadow: `0 0 14px ${activeColor}`,
-              transition: "color 0.4s ease, text-shadow 0.4s ease",
-            }}>{activeName}</div>
-            <div style={{
-              color: "rgba(255,255,255,0.35)",
-              fontSize: 8,
-              fontFamily: "Inter, sans-serif",
-              letterSpacing: "0.06em",
-              marginTop: 2,
-            }}>selected</div>
-          </div>
-        </div>
 
         {/* ── INNER DISC: auto-rotating decorative layer ── */}
         <div
