@@ -38,6 +38,7 @@ function getNearestIdx(currentRotation: number): number {
 }
 
 export function PearlNav() {
+  const [isOpen, setIsOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [outerRotation, setOuterRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -119,17 +120,68 @@ export function PearlNav() {
         }}
       />
 
+      {/* ── Toggle button — always visible on right edge ── */}
+      <button
+        onClick={() => setIsOpen((o) => !o)}
+        style={{
+          position: "fixed",
+          right: isOpen ? DISC_SIZE / 2 - 20 : 0,
+          top: "50vh",
+          transform: "translateY(-50%)",
+          zIndex: 60,
+          width: 36,
+          height: 64,
+          borderRadius: "8px 0 0 8px",
+          background: isOpen
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(80,130,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRight: "none",
+          backdropFilter: "blur(12px)",
+          cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 5,
+          transition: "right 0.5s cubic-bezier(0.4,0,0.2,1), background 0.3s ease",
+          outline: "none",
+          boxShadow: isOpen ? "none" : "-4px 0 20px rgba(80,130,255,0.25)",
+        }}
+        title={isOpen ? "Close navigation" : "Open navigation"}
+      >
+        {/* Three dot indicator */}
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{
+            width: 4, height: 4, borderRadius: "50%",
+            background: isOpen ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.75)",
+            transition: "background 0.3s ease",
+          }} />
+        ))}
+        {/* Arrow chevron */}
+        <div style={{
+          width: 8, height: 8,
+          borderTop: "1.5px solid rgba(255,255,255,0.5)",
+          borderLeft: "1.5px solid rgba(255,255,255,0.5)",
+          transform: isOpen ? "rotate(225deg)" : "rotate(45deg)",
+          transition: "transform 0.4s ease",
+          marginTop: 2,
+        }} />
+      </button>
+
       {/* ── Disc container ── */}
       <div
         ref={containerRef}
         data-testid="pearl-disc-nav"
         style={{
           position: "fixed",
-          right: -(DISC_SIZE / 2),
+          right: isOpen ? -(DISC_SIZE / 2) : -DISC_SIZE,
           top: `calc(50vh - ${DISC_SIZE / 2}px)`,
           width: DISC_SIZE,
           height: DISC_SIZE,
           zIndex: 50,
+          transition: "right 0.5s cubic-bezier(0.4,0,0.2,1)",
+          pointerEvents: isOpen ? "auto" : "none",
         }}
       >
 
