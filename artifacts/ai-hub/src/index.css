@@ -121,15 +121,6 @@
   to   { transform: rotate(360deg); }
 }
 
-@keyframes discCounterSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(-360deg); }
-}
-
 .pearl-disc-rotate {
-  animation: discSpin 24s linear infinite;
-}
-
-.pearl-counter-rotate {
-  animation: discCounterSpin 24s linear infinite;
+  animation: discSpin 22s linear infinite;
 }
