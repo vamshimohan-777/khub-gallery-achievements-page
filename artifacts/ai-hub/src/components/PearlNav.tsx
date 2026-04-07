@@ -46,6 +46,9 @@ export function PearlNav() {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
   const outerRotRef = useRef(0);
+  const activeIdxRef = useRef(0);
+  // Suppress scroll-driven rotation briefly after user manually picks a paradigm
+  const suppressScrollRef = useRef(false);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -67,15 +70,21 @@ export function PearlNav() {
     setIsSnapping(false);
   };
 
+  const rotateTo = (idx: number) => {
+    const target = getSnapTarget(outerRotRef.current, idx);
+    outerRotRef.current = target;
+    activeIdxRef.current = idx;
+    setOuterRotation(target);
+    setActiveIdx(idx);
+  };
+
   const snapAndNavigate = () => {
     const nearest = getNearestIdx(outerRotRef.current);
-    const snapRot = getSnapTarget(outerRotRef.current, nearest);
-    outerRotRef.current = snapRot;
-    setOuterRotation(snapRot);
-    setActiveIdx(nearest);
+    rotateTo(nearest);
     setIsSnapping(true);
+    suppressScrollRef.current = true;
     scrollTo(paradigms[nearest].id);
-    setTimeout(() => setIsSnapping(false), 600);
+    setTimeout(() => { setIsSnapping(false); suppressScrollRef.current = false; }, 1200);
   };
 
   useEffect(() => {
@@ -103,6 +112,27 @@ export function PearlNav() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
+  }, []);
+
+  // ── Scroll tracking: auto-rotate disc to match visible section ──
+  useEffect(() => {
+    const onScroll = () => {
+      if (dragRef.current || suppressScrollRef.current) return;
+      const viewMid = window.scrollY + window.innerHeight * 0.5;
+      let closestIdx = activeIdxRef.current;
+      let closestDist = Infinity;
+      paradigms.forEach((p, idx) => {
+        const el = document.getElementById(p.id);
+        if (!el) return;
+        const dist = Math.abs(viewMid - (el.offsetTop + el.offsetHeight / 2));
+        if (dist < closestDist) { closestDist = dist; closestIdx = idx; }
+      });
+      if (closestIdx !== activeIdxRef.current) {
+        rotateTo(closestIdx);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
@@ -265,11 +295,10 @@ export function PearlNav() {
                 <button
                   onClick={() => {
                     if (!isDragging) {
-                      const target = getSnapTarget(outerRotRef.current, idx);
-                      outerRotRef.current = target;
-                      setOuterRotation(target);
-                      setActiveIdx(idx);
+                      rotateTo(idx);
+                      suppressScrollRef.current = true;
                       scrollTo(p.id);
+                      setTimeout(() => { suppressScrollRef.current = false; }, 1200);
                     }
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
