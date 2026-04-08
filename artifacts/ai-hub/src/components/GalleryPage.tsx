@@ -9,12 +9,8 @@ export function GalleryPage() {
       <Hero />
       
       <div className="relative">
-        {paradigms.map((paradigm, index) => (
-          <ParadigmSection 
-            key={paradigm.id} 
-            paradigm={paradigm} 
-            index={index} 
-          />
+        {paradigms.map((paradigm) => (
+          <ParadigmSection key={paradigm.id} paradigm={paradigm} />
         ))}
       </div>
 
