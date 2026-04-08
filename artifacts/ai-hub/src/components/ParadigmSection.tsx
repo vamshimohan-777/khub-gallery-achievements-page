@@ -9,10 +9,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { fetchParadigmScrape } from "../lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
   const Icon = paradigm.icon;
-  const [hero, ...gallery] = paradigm.photos;
+  
+  const { data: scraped, isLoading } = useQuery({
+    queryKey: ["paradigm-scrape", paradigm.id],
+    queryFn: () => fetchParadigmScrape(paradigm.id),
+  });
+
+  const achievements = scraped?.achievements ?? paradigm.achievements ?? [];
+  const photos = scraped?.photos ?? paradigm.photos ?? [];
+  const hero = photos[0];
+  const gallery = photos.slice(1);
+
   const [hoveredAchievementKey, setHoveredAchievementKey] = React.useState<string | null>(null);
   const [detailAchievement, setDetailAchievement] = React.useState<Achievement | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = React.useState<Photo | null>(null);
@@ -34,12 +47,18 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
         className="relative mx-6 lg:mx-16 rounded-3xl overflow-hidden mb-14 shadow-2xl shadow-primary/5"
         style={{ height: 380 }}
       >
-        <img
-          src={hero.src}
-          alt={hero.alt}
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-        />
+        {isLoading ? (
+          <Skeleton className="absolute inset-0 w-full h-full" />
+        ) : hero ? (
+          <img
+            src={hero.src}
+            alt={hero.alt}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-accent/20" />
+        )}
         {/* Theme-aware gradient over image */}
         <div
           className="absolute inset-0"
@@ -78,7 +97,7 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
             {paradigm.description}
           </p>
           <a
-            href={paradigm.siteUrl}
+            href={scraped?.siteUrl ?? paradigm.siteUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
@@ -110,7 +129,17 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
               style={{ background: `linear-gradient(to bottom, ${paradigm.color}60, transparent)` }}
             />
             <div className="space-y-6">
-              {paradigm.achievements.map((a, i) => {
+              {isLoading ? (
+                Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="flex gap-5">
+                    <div className="flex-shrink-0 mt-1 relative z-10">
+                      <Skeleton className="w-10 h-10 rounded-full" />
+                    </div>
+                    <Skeleton className="flex-1 h-24 rounded-2xl" />
+                  </div>
+                ))
+              ) : achievements.length > 0 ? (
+                achievements.map((a, i) => {
                 const key = `${paradigm.id}-${i}`;
                 const showHoverPreview = hoveredAchievementKey === key;
                 return (
@@ -178,7 +207,10 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
                     </button>
                   </motion.div>
                 );
-              })}
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground ml-16 italic">No achievements found.</p>
+            )}
             </div>
           </div>
         </div>
@@ -197,84 +229,102 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
           </motion.h3>
           {/* Masonry-style 2+2+1 grid */}
           <div className="grid grid-cols-2 gap-3">
-            {/* Row 1: two equal */}
-            {gallery.slice(0, 2).map((photo, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="rounded-xl overflow-hidden shadow-md"
-                style={{ height: 160 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setLightboxPhoto(photo)}
-                  className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label={`View larger: ${photo.alt}`}
-                >
-                  <img
-                    src={photo.src}
-                    alt={photo.alt}
-                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                    loading="lazy"
-                  />
-                </button>
-              </motion.div>
-            ))}
-            {/* Row 2: tall left + two stacked right */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-xl overflow-hidden row-span-2 shadow-md"
-              style={{ height: 328 }}
-            >
-              {gallery[2] ? (
-                <button
-                  type="button"
-                  onClick={() => setLightboxPhoto(gallery[2])}
-                  className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label={`View larger: ${gallery[2].alt}`}
-                >
-                  <img
-                    src={gallery[2].src}
-                    alt={gallery[2].alt}
-                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                    loading="lazy"
-                  />
-                </button>
-              ) : null}
-            </motion.div>
-            <div className="flex flex-col gap-3">
-              {gallery.slice(3, 5).map((photo, i) => (
+            {isLoading ? (
+              <>
+                <Skeleton className="rounded-xl h-[160px]" />
+                <Skeleton className="rounded-xl h-[160px]" />
+                <Skeleton className="rounded-xl h-[328px] row-span-2" />
+                <div className="flex flex-col gap-3">
+                   <Skeleton className="rounded-xl flex-1 h-[155px]" />
+                   <Skeleton className="rounded-xl flex-1 h-[155px]" />
+                </div>
+              </>
+            ) : gallery.length > 0 ? (
+              <>
+                {/* Row 1: two equal */}
+                {gallery.slice(0, 2).map((photo, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.5, delay: i * 0.08 }}
+                    className="rounded-xl overflow-hidden shadow-md"
+                    style={{ height: 160 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setLightboxPhoto(photo)}
+                      className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label={`View larger: ${photo.alt}`}
+                    >
+                      <img
+                        src={photo.src}
+                        alt={photo.alt}
+                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
+                        loading="lazy"
+                      />
+                    </button>
+                  </motion.div>
+                ))}
+                {/* Row 2: tall left + two stacked right */}
                 <motion.div
-                  key={i}
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.5, delay: 0.28 + i * 0.08 }}
-                  className="rounded-xl overflow-hidden flex-1 shadow-md"
-                  style={{ height: 155 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="rounded-xl overflow-hidden row-span-2 shadow-md"
+                  style={{ height: 328 }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setLightboxPhoto(photo)}
-                    className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    aria-label={`View larger: ${photo.alt}`}
-                  >
-                    <img
-                      src={photo.src}
-                      alt={photo.alt}
-                      className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                      loading="lazy"
-                    />
-                  </button>
+                  {gallery[2] ? (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxPhoto(gallery[2])}
+                      className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label={`View larger: ${gallery[2].alt}`}
+                    >
+                      <img
+                        src={gallery[2].src}
+                        alt={gallery[2].alt}
+                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
+                        loading="lazy"
+                      />
+                    </button>
+                  ) : null}
                 </motion.div>
-              ))}
-            </div>
+                <div className="flex flex-col gap-3">
+                  {gallery.slice(3, 5).map((photo, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true, margin: "-40px" }}
+                      transition={{ duration: 0.5, delay: 0.28 + i * 0.08 }}
+                      className="rounded-xl overflow-hidden flex-1 shadow-md"
+                      style={{ height: 155 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setLightboxPhoto(photo)}
+                        className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        aria-label={`View larger: ${photo.alt}`}
+                      >
+                        <img
+                          src={photo.src}
+                          alt={photo.alt}
+                          className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
+                          loading="lazy"
+                        />
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            ) : (
+               <div className="col-span-2 py-10 text-center border-2 border-dashed border-border rounded-2xl bg-accent/5">
+                 <p className="text-xs text-muted-foreground italic">No gallery items available.</p>
+               </div>
+            )}
           </div>
         </div>
 
