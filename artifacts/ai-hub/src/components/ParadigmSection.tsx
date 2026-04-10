@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ExternalLink } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Achievement, Paradigm, Photo } from "../data/paradigms";
+import { Achievement, Paradigm } from "../data/paradigms";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +24,9 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
   const achievements = scraped?.achievements ?? paradigm.achievements ?? [];
   const photos = scraped?.photos ?? paradigm.photos ?? [];
   const hero = photos[0];
-  const gallery = photos.slice(1);
 
   const [hoveredAchievementKey, setHoveredAchievementKey] = React.useState<string | null>(null);
   const [detailAchievement, setDetailAchievement] = React.useState<Achievement | null>(null);
-  const [lightboxPhoto, setLightboxPhoto] = React.useState<Photo | null>(null);
 
   return (
     <section
@@ -108,10 +106,9 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
         </div>
       </motion.div>
 
-      <div className="mx-6 lg:mx-16 grid lg:grid-cols-[1fr_1.4fr] gap-10">
-
+      <div className="mx-6 lg:mx-16 flex justify-center">
         {/* ── Achievements timeline ── */}
-        <div>
+        <div className="w-full max-w-2xl">
           <motion.h3
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -215,118 +212,6 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
           </div>
         </div>
 
-        {/* ── Photo gallery ── */}
-        <div>
-          <motion.h3
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ color: paradigm.color }}
-          >
-            Gallery
-          </motion.h3>
-          {/* Masonry-style 2+2+1 grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {isLoading ? (
-              <>
-                <Skeleton className="rounded-xl h-[160px]" />
-                <Skeleton className="rounded-xl h-[160px]" />
-                <Skeleton className="rounded-xl h-[328px] row-span-2" />
-                <div className="flex flex-col gap-3">
-                   <Skeleton className="rounded-xl flex-1 h-[155px]" />
-                   <Skeleton className="rounded-xl flex-1 h-[155px]" />
-                </div>
-              </>
-            ) : gallery.length > 0 ? (
-              <>
-                {/* Row 1: two equal */}
-                {gallery.slice(0, 2).map((photo, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-40px" }}
-                    transition={{ duration: 0.5, delay: i * 0.08 }}
-                    className="rounded-xl overflow-hidden shadow-md"
-                    style={{ height: 160 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setLightboxPhoto(photo)}
-                      className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      aria-label={`View larger: ${photo.alt}`}
-                    >
-                      <img
-                        src={photo.src}
-                        alt={photo.alt}
-                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                        loading="lazy"
-                      />
-                    </button>
-                  </motion.div>
-                ))}
-                {/* Row 2: tall left + two stacked right */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className="rounded-xl overflow-hidden row-span-2 shadow-md"
-                  style={{ height: 328 }}
-                >
-                  {gallery[2] ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightboxPhoto(gallery[2])}
-                      className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      aria-label={`View larger: ${gallery[2].alt}`}
-                    >
-                      <img
-                        src={gallery[2].src}
-                        alt={gallery[2].alt}
-                        className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                        loading="lazy"
-                      />
-                    </button>
-                  ) : null}
-                </motion.div>
-                <div className="flex flex-col gap-3">
-                  {gallery.slice(3, 5).map((photo, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true, margin: "-40px" }}
-                      transition={{ duration: 0.5, delay: 0.28 + i * 0.08 }}
-                      className="rounded-xl overflow-hidden flex-1 shadow-md"
-                      style={{ height: 155 }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setLightboxPhoto(photo)}
-                        className="relative block h-full w-full overflow-hidden border-0 p-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        aria-label={`View larger: ${photo.alt}`}
-                      >
-                        <img
-                          src={photo.src}
-                          alt={photo.alt}
-                          className="h-full w-full object-cover transition-transform duration-700 hover:scale-110"
-                          loading="lazy"
-                        />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            ) : (
-               <div className="col-span-2 py-10 text-center border-2 border-dashed border-border rounded-2xl bg-accent/5">
-                 <p className="text-xs text-muted-foreground italic">No gallery items available.</p>
-               </div>
-            )}
-          </div>
-        </div>
 
       </div>
 
@@ -363,27 +248,7 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={lightboxPhoto !== null} onOpenChange={(o) => !o && setLightboxPhoto(null)}>
-        <DialogContent className="max-w-[min(56rem,calc(100vw-2rem))] border-0 bg-transparent p-2 shadow-none sm:rounded-2xl">
-          {lightboxPhoto && (
-            <>
-              <DialogTitle className="sr-only">Gallery image: {lightboxPhoto.alt}</DialogTitle>
-              <div className="overflow-hidden rounded-xl bg-background">
-                <img
-                  src={lightboxPhoto.src}
-                  alt={lightboxPhoto.alt}
-                  className="max-h-[85vh] w-full object-contain"
-                />
-                {lightboxPhoto.alt ? (
-                  <p className="border-t border-border px-4 py-3 text-center text-sm text-muted-foreground">
-                    {lightboxPhoto.alt}
-                  </p>
-                ) : null}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+
     </section>
   );
 }

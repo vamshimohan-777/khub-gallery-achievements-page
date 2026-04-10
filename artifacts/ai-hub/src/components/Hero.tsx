@@ -27,7 +27,7 @@ export function Hero() {
           className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-b from-foreground via-foreground/90 to-foreground/30"
           style={{ fontFamily: 'var(--app-font-display)' }}
         >
-          Gallery & Achievements
+          Achievements
         </motion.h1>
 
         <motion.p
@@ -37,7 +37,7 @@ export function Hero() {
           className="text-xl md:text-3xl text-foreground/70 font-light max-w-3xl tracking-wide"
         >
           A Journey Through AI Innovation. <br/>
-          <span className="text-muted-foreground text-lg md:text-xl block mt-2">Celebrating the breakthroughs and milestones of our core paradigms.</span>
+          <span className="text-muted-foreground text-lg md:text-xl block mt-2">Celebrating the breakthroughs and defining milestones of our core paradigms.</span>
         </motion.p>
         
         <motion.div 
