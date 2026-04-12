@@ -6,6 +6,8 @@ const DISC_SIZE = 560;
 const ARM_RADIUS = 198;
 /** Labels live well inside the opaque inner disc for contrast. */
 const LABEL_RADIUS = 135;
+/** Logo badge size next to each label (inactive / active). */
+const LOGO_SIZE = { inactive: 36, active: 44 } as const;
 const N = paradigms.length;
 const SELECTOR_ANGLE = 180;
 
@@ -16,6 +18,15 @@ const SHORT_NAMES: Record<string, string> = {
   "neuro-paradigm": "Neuro",
   "crystal-paradigm": "Crystal",
   "nutra-paradigm": "Nutra",
+};
+
+const PARADIGM_LOGOS: Record<string, string> = {
+  "drug-paradigm": "/paradigm-logos/drug-paradigm.png",
+  "robo-paradigm": "/paradigm-logos/robo-paradigm.png",
+  "cyber-paradigm": "/paradigm-logos/cyber-paradigm.png",
+  "neuro-paradigm": "/paradigm-logos/neuro-paradigm.png",
+  "crystal-paradigm": "/paradigm-logos/crystal-paradigm.png",
+  "nutra-paradigm": "/paradigm-logos/nutra-paradigm.png",
 };
 
 function getSnapTarget(currentRotation: number, idx: number): number {
@@ -36,11 +47,12 @@ function getNearestIdx(currentRotation: number): number {
 }
 
 export function PearlNav() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const [outerRotation, setOuterRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isSnapping, setIsSnapping] = useState(false);
+  const [missingLogos, setMissingLogos] = useState<Record<string, boolean>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startAngle: number; startRotation: number } | null>(null);
   const outerRotRef = useRef(0);
@@ -324,33 +336,56 @@ export function PearlNav() {
                   data-testid={`pearl-nav-${p.id}`}
                   style={{
                     position: "absolute",
-                    left: LABEL_RADIUS - 12, top: -12,
+                    left: LABEL_RADIUS - 14,
+                    top: -LOGO_SIZE.active / 2,
                     display: "flex", alignItems: "center",
                     background: "transparent", border: "none",
                     cursor: "pointer", outline: "none", padding: "0",
-                    maxWidth: LABEL_RADIUS - 18,
+                    maxWidth: LABEL_RADIUS + 28,
                   }}
                 >
                   <div style={{
                     display: "flex",
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 10,
                     minWidth: 0,
                     /* Rotate labels radially toward the center (not fixed horizontal). */
                     transform: `rotate(180deg)`,
                     transition: isDragging ? "none" : "transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                   }}>
-                    <div style={{
-                      width: isActive ? 26 : 20, height: isActive ? 26 : 20,
-                      borderRadius: "50%", flexShrink: 0,
-                      background: `radial-gradient(circle at 32% 28%, #fff 0%, ${p.color} 50%, rgba(0,0,0,0.2) 100%)`,
-                      boxShadow: isActive
-                        ? `0 0 30px ${p.color}, inset -1px -1px 4px rgba(0,0,0,0.2)`
-                        : `0 0 15px ${p.color}66`,
-                      border: `2px solid ${isActive ? "#fff" : "rgba(255,255,255,0.8)"}`,
-                      transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                    }} />
+                    <div
+                      style={{
+                        width: isActive ? LOGO_SIZE.active : LOGO_SIZE.inactive,
+                        height: isActive ? LOGO_SIZE.active : LOGO_SIZE.inactive,
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        overflow: "hidden",
+                        background: `radial-gradient(circle at 32% 28%, #fff 0%, ${p.color} 50%, rgba(0,0,0,0.2) 100%)`,
+                        boxShadow: isActive
+                          ? `0 0 30px ${p.color}, inset -1px -1px 4px rgba(0,0,0,0.2)`
+                          : `0 0 15px ${p.color}66`,
+                        border: `2px solid ${isActive ? "#fff" : "rgba(255,255,255,0.8)"}`,
+                        transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                        display: "grid",
+                        placeItems: "center",
+                      }}
+                    >
+                      {!missingLogos[p.id] ? (
+                        <img
+                          src={PARADIGM_LOGOS[p.id]}
+                          alt={`${p.name} logo`}
+                          onError={() =>
+                            setMissingLogos((prev) => ({ ...prev, [p.id]: true }))
+                          }
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : null}
+                    </div>
 
                     <span
                       title={SHORT_NAMES[p.id] ?? p.name}
@@ -358,7 +393,7 @@ export function PearlNav() {
                         color: isActive
                           ? "var(--color-foreground)"
                           : "color-mix(in oklab, var(--color-foreground) 86%, var(--color-muted-foreground))",
-                        fontSize: isActive ? 10 : 9,
+                        fontSize: isActive ? 13 : 12,
                         fontWeight: isActive ? 850 : 650,
                         fontFamily: "var(--app-font-display)",
                         letterSpacing: "0.06em",
@@ -369,11 +404,11 @@ export function PearlNav() {
                         display: "inline-flex",
                         alignItems: "center",
                         minWidth: 0,
-                        maxWidth: isActive ? 96 : 72,
+                        maxWidth: isActive ? 118 : 92,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        padding: isActive ? "3px 8px" : "2px 7px",
+                        padding: isActive ? "4px 10px" : "3px 9px",
                         borderRadius: 999,
                         /* Subtle pill that works on light/dark. */
                         background: isActive
