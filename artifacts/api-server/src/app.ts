@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import path from "path";
 
 const app: Express = express();
 
@@ -30,5 +31,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// Serve static files from the build dist
+app.use(express.static(path.join(import.meta.dirname, "../ai-hub/dist/public")));
+
+// Fallback to index.html for client-side routing
+app.get("*", (req, res) => {
+  res.sendFile(path.join(import.meta.dirname, "../ai-hub/dist/public/index.html"));
+});
 
 export default app;
