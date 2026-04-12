@@ -22,6 +22,31 @@ From the repo root:
 pnpm install
 ```
 
+### Run the backend API server
+
+The frontend requires the backend to load paradigm data and photos.
+
+**Start the API server** (from the repo root):
+
+```bash
+cd artifacts/api-server
+pnpm dev
+```
+
+The server will start on `http://localhost:5000`.
+
+**Note for Windows users:** The `dev` script uses `export` which doesn't work in PowerShell or Command Prompt. Use one of these instead:
+
+**PowerShell:**
+```powershell
+$env:NODE_ENV='development'; pnpm run build; pnpm run start
+```
+
+**Command Prompt (cmd):**
+```cmd
+set NODE_ENV=development && pnpm run build && pnpm run start
+```
+
 ### Run the main app
 
 ```bash
@@ -30,6 +55,8 @@ pnpm dev
 ```
 
 Then open the local URL printed by Vite (usually `http://localhost:5173`).
+
+**Note:** Make sure the backend API server is running before starting the frontend, so that images and data load correctly.
 
 ### Typecheck (whole workspace)
 
