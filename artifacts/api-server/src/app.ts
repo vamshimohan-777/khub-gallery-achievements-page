@@ -33,11 +33,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 // Serve static files from the build dist
-app.use(express.static(path.join(import.meta.dirname, "../ai-hub/dist/public")));
+const staticPath = path.join(process.cwd(), "artifacts/ai-hub/dist/public");
+app.use(express.static(staticPath));
 
 // Fallback to index.html for client-side routing
 app.get("*", (req, res) => {
-  res.sendFile(path.join(import.meta.dirname, "../ai-hub/dist/public/index.html"));
+  res.sendFile(path.join(staticPath, "index.html"));
 });
 
 export default app;
