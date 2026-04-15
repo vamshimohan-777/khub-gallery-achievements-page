@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { paradigms } from "../data/paradigms";
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const DISC_SIZE = 560;
 /** Keep pearls inside the outer disc (half-size = 280px). */
@@ -216,22 +217,25 @@ export function PearlNav() {
         </span>
       </button>
 
-      <div
-        ref={containerRef}
-        data-testid="pearl-disc-nav"
-        style={{
-          position: "fixed",
-          right: isOpen ? -(DISC_SIZE / 2) : -DISC_SIZE,
-          top: `calc(50vh - ${DISC_SIZE / 2}px)`,
-          width: DISC_SIZE,
-          height: DISC_SIZE,
-          zIndex: 50,
-          transition: "right 0.5s cubic-bezier(0.4,0,0.2,1)",
-          pointerEvents: isOpen ? "auto" : "none",
-          borderRadius: "50%",
-          overflow: "hidden",
-        }}
-      >
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              ref={containerRef}
+              data-testid="pearl-disc-nav"
+              style={{
+                position: "fixed",
+                right: isOpen ? -(DISC_SIZE / 2) : -DISC_SIZE,
+                top: `calc(50vh - ${DISC_SIZE / 2}px)`,
+                width: DISC_SIZE,
+                height: DISC_SIZE,
+                zIndex: 50,
+                transition: "right 0.5s cubic-bezier(0.4,0,0.2,1)",
+                pointerEvents: isOpen ? "auto" : "none",
+                borderRadius: "50%",
+                overflow: "hidden",
+              }}
+            >
         <div
           className="pearl-disc-rotate"
           style={{ position: "absolute", inset: 0, borderRadius: "50%", pointerEvents: "none" }}
@@ -427,7 +431,18 @@ export function PearlNav() {
             );
           })}
         </div>
-      </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-xs">
+            <div className="text-sm space-y-1">
+              <p className="font-semibold">Paradigm Wheel</p>
+              <p>• Drag to rotate</p>
+              <p>• Click a paradigm to navigate</p>
+              <p>• Auto-syncs as you scroll</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </>
   );
 }
