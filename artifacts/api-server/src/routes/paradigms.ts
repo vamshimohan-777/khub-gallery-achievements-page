@@ -28,12 +28,14 @@ const paradigmsData: Record<string, any> = {
     achievements: [
       {
         year: "2021",
+        month: 3,
         title: "Neural Motion Planning",
         desc: "Real-time obstacle avoidance in dynamic human-centric spaces.",
         details: "Learned planners fused perception with control so mobile manipulators could re-route in milliseconds as people and objects moved unpredictably.",
       },
       {
         year: "2023",
+        month: 9,
         title: "General Purpose Humanoids",
         desc: "Scaling foundation models to complex bipedal manipulation tasks.",
         details: "Vision–language–action stacks began transferring skills across tasks—grasping, tool use, and navigation—without full retraining for each behavior.",
@@ -50,12 +52,14 @@ const paradigmsData: Record<string, any> = {
     achievements: [
       {
         year: "2022",
+        month: 2,
         title: "Autonomous Firewall",
         desc: "AI-driven perimeter defense blocks 99.9% of novel exploits.",
         details: "Behavioral models scored sessions, payloads, and lateral movement in parallel so rulesets could adapt faster than static signatures.",
       },
       {
         year: "2024",
+        month: 8,
         title: "Self-Healing Code",
         desc: "LLMs automatically patch vulnerabilities in production environments.",
         details: "Pipelines paired static analysis with runtime signals to propose minimal diffs and roll them through canaries before wide rollout.",
@@ -72,12 +76,14 @@ const paradigmsData: Record<string, any> = {
     achievements: [
       {
         year: "2023",
+        month: 7,
         title: "Thought-to-Speech",
         desc: "A paralyzed patient communicates at 60 words per minute via BCI.",
         details: "Neural decoders mapped cortical activity to phoneme or word sequences fast enough for conversational pacing.",
       },
       {
         year: "2024",
+        month: 4,
         title: "Neuromorphic Vision",
         desc: "Camera sensors that mimic the efficiency of the human retina.",
         details: "Event-based sensing and spiking networks cut bandwidth and power versus frame cameras for edge robotics and wearables.",
@@ -94,6 +100,7 @@ const paradigmsData: Record<string, any> = {
     achievements: [
       {
         year: "2023",
+        month: 11,
         title: "2.2M New Materials",
         desc: "Scaling material discovery by 800 years of human effort.",
         details: "Generative models plus graph networks proposed candidates that were then filtered by DFT surrogates and stability heuristics at scale.",
@@ -116,12 +123,14 @@ const paradigmsData: Record<string, any> = {
     achievements: [
       {
         year: "2022",
+        month: 5,
         title: "Personalized Glycemic Map",
         desc: "AI predicts blood sugar spikes with 90% accuracy.",
         details: "Continuous glucose traces, meal logs, and wearables trained user-specific response models that surfaced likely spikes before they happened.",
       },
       {
         year: "2024",
+        month: 10,
         title: "Generative Diets",
         desc: "Models design meals tailored to individual inflammatory markers.",
         details: "Constraint-aware generation balanced macros, allergens, cultural preferences, and lab targets into weekly plans.",
@@ -146,12 +155,16 @@ async function getDynamicDrugAchievements() {
     return papers
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5)
-      .map(p => ({
-        year: p.date.split("-")[0],
-        title: p.title.split(":")[0]?.trim() || p.title,
-        desc: `Research by ${p.authors.slice(0, 2).join(", ")}${p.authors.length > 2 ? " et al." : ""}`,
-        details: `${p.title}. Published on ${p.date}. Website: ${p.url}`
-      }));
+      .map(p => {
+        const [yearStr, monthStr] = p.date.split("-");
+        return {
+          year: yearStr,
+          month: monthStr ? parseInt(monthStr, 10) : undefined,
+          title: p.title.split(":")[0]?.trim() || p.title,
+          desc: `Research by ${p.authors.slice(0, 2).join(", ")}${p.authors.length > 2 ? " et al." : ""}`,
+          details: `${p.title}. Published on ${p.date}. Website: ${p.url}`
+        };
+      });
   } catch (error) {
     console.error("Scraping failed, falling back to static data:", error);
     return null;

@@ -2,11 +2,14 @@ import { Brain, Eye, MessageSquare, Dna, Bot, Network, NetworkIcon, LineChart } 
 
 export type Achievement = {
   year: string;
+  month?: number; // 1-12
   title: string;
   /** One-line summary; shown when the achievement row is hovered. */
   desc: string;
   /** Longer copy for the detail dialog when the row is clicked. */
   details: string;
+  /** Optional URL to redirect to when clicked */
+  url?: string;
 };
 
 export type Photo = {

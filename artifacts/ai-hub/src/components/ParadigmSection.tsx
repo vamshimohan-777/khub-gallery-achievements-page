@@ -2,16 +2,35 @@ import * as React from "react";
 import { ExternalLink } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Achievement, Paradigm } from "../data/paradigms";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { fetchParadigmScrape } from "../lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+// Helper function to render text with clickable links
+function renderDetailsWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, idx) => {
+    if (urlRegex.test(part)) {
+      const url = part.startsWith('http') ? part : `https://${part}`;
+      return (
+        <a
+          key={idx}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
+        >
+          {part} <ExternalLink className="w-3 h-3 inline" />
+        </a>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
 
 export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
   const Icon = paradigm.icon;
@@ -26,7 +45,6 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
   const hero = photos[0];
 
   const [hoveredAchievementKey, setHoveredAchievementKey] = React.useState<string | null>(null);
-  const [detailAchievement, setDetailAchievement] = React.useState<Achievement | null>(null);
 
   return (
     <section
@@ -164,12 +182,15 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
                     <button
                       type="button"
                       aria-expanded={showHoverPreview}
-                      aria-haspopup="dialog"
                       onMouseEnter={() => setHoveredAchievementKey(key)}
                       onMouseLeave={() => setHoveredAchievementKey(null)}
                       onFocus={() => setHoveredAchievementKey(key)}
                       onBlur={() => setHoveredAchievementKey(null)}
-                      onClick={() => setDetailAchievement(a)}
+                      onClick={() => {
+                        if (a.url) {
+                          window.open(a.url, '_blank');
+                        }
+                      }}
                       className="flex-1 rounded-2xl border p-4 text-left shadow-sm backdrop-blur-sm transition-colors hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       style={{
                         background: "var(--card)/0.5",
@@ -181,7 +202,7 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
                           className="text-[10px] font-bold tracking-widest"
                           style={{ color: paradigm.color }}
                         >
-                          {a.year}
+                          {a.month ? `${MONTHS[a.month - 1]} ${a.year}` : a.year}
                         </span>
                       </div>
                       <h4 className="text-foreground font-bold text-sm">{a.title}</h4>
@@ -195,9 +216,20 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className="overflow-hidden"
                           >
-                            <p className="mt-2 text-xs leading-snug text-muted-foreground line-clamp-1">
-                              {a.desc}
-                            </p>
+                            <div className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                              <p>{renderDetailsWithLinks(a.details)}</p>
+                              {a.url && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(a.url, '_blank');
+                                  }}
+                                  className="mt-2 inline-flex items-center gap-1 text-primary font-semibold hover:underline cursor-pointer"
+                                >
+                                  {a.url} <ExternalLink className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -220,34 +252,6 @@ export function ParadigmSection({ paradigm }: { paradigm: Paradigm }) {
         className="mx-16 mt-20 h-px"
         style={{ background: `linear-gradient(to right, transparent, ${paradigm.color}30, transparent)` }}
       />
-
-      <Dialog open={detailAchievement !== null} onOpenChange={(o) => !o && setDetailAchievement(null)}>
-        <DialogContent
-          className="max-w-2xl rounded-2xl border-2 sm:rounded-2xl"
-          style={{ borderColor: detailAchievement ? `${paradigm.color}40` : undefined }}
-        >
-          {detailAchievement && (
-            <DialogHeader>
-              <span
-                className="mb-2 inline-flex w-fit rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-widest"
-                style={{
-                  background: `${paradigm.color}22`,
-                  color: paradigm.color,
-                }}
-              >
-                {detailAchievement.year}
-              </span>
-              <DialogTitle className="pr-8 text-left text-2xl leading-tight">
-                {detailAchievement.title}
-              </DialogTitle>
-              <DialogDescription className="text-left text-base leading-relaxed text-muted-foreground">
-                {detailAchievement.details}
-              </DialogDescription>
-            </DialogHeader>
-          )}
-        </DialogContent>
-      </Dialog>
-
 
     </section>
   );
