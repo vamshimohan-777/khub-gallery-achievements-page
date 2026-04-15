@@ -433,11 +433,13 @@ export function PearlNav() {
         </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="left" className="max-w-xs">
+          <TooltipContent 
+            side="left" 
+            className="max-w-xs"
+          >
             <div className="text-sm space-y-1">
               <p className="font-semibold">Paradigm Wheel</p>
               <p>• Drag to rotate</p>
-              <p>• Click a paradigm to navigate</p>
               <p>• Auto-syncs as you scroll</p>
             </div>
           </TooltipContent>
